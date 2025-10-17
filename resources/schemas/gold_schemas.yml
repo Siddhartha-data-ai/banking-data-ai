@@ -1,0 +1,10 @@
+resources:
+  schemas:
+    banking_gold:
+      name: banking_gold
+      catalog_name: banking_catalog
+      comment: "Gold layer - Business-ready aggregations and analytics"
+      properties:
+        layer: "gold"
+        quality: "production"
+

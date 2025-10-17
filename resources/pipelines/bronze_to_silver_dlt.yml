@@ -1,0 +1,36 @@
+resources:
+  pipelines:
+    banking_bronze_to_silver_dlt:
+      name: banking_bronze_to_silver_dlt
+      target: banking_silver
+      catalog: banking_catalog
+      
+      libraries:
+        - notebook:
+            path: ../../src/pipelines/bronze_to_silver_customers.py
+        - notebook:
+            path: ../../src/pipelines/bronze_to_silver_accounts.py
+        - notebook:
+            path: ../../src/pipelines/bronze_to_silver_transactions.py
+        - notebook:
+            path: ../../src/pipelines/bronze_to_silver_loans.py
+        - notebook:
+            path: ../../src/pipelines/bronze_to_silver_credit_cards.py
+      
+      configuration:
+        "pipelines.applyChangesPreviewEnabled": "true"
+      
+      clusters:
+        - label: default
+          autoscale:
+            min_workers: 1
+            max_workers: 5
+            mode: ENHANCED
+      
+      channel: CURRENT
+      edition: ADVANCED
+      photon: true
+      continuous: false
+      
+      development: true
+

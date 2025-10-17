@@ -1,0 +1,9 @@
+resources:
+  catalogs:
+    banking_catalog:
+      name: banking_catalog
+      comment: "Banking Data & AI Platform Catalog"
+      properties:
+        purpose: "banking_analytics"
+        owner: "data_team"
+

@@ -1,0 +1,58 @@
+{
+  "catalog_name": "banking_catalog",
+  "bronze_schema": "banking_bronze",
+  "silver_schema": "banking_silver",
+  "gold_schema": "banking_gold",
+  "checkpoint_location": "/tmp/banking_checkpoints",
+  "data_volume": "/Volumes/banking_catalog/banking_bronze/raw_data",
+  
+  "bronze_tables": {
+    "accounts": "banking_bronze.accounts",
+    "transactions": "banking_bronze.transactions",
+    "customers": "banking_bronze.customers",
+    "loans": "banking_bronze.loans",
+    "credit_cards": "banking_bronze.credit_cards"
+  },
+  
+  "silver_tables": {
+    "accounts_clean": "banking_silver.accounts_clean",
+    "transactions_clean": "banking_silver.transactions_clean",
+    "customers_clean": "banking_silver.customers_clean",
+    "loans_clean": "banking_silver.loans_clean",
+    "credit_cards_clean": "banking_silver.credit_cards_clean"
+  },
+  
+  "gold_tables": {
+    "customer_360": "banking_gold.customer_360",
+    "fraud_analytics": "banking_gold.fraud_analytics",
+    "credit_risk_summary": "banking_gold.credit_risk_summary",
+    "transaction_analytics": "banking_gold.transaction_analytics"
+  },
+  
+  "ml_models": {
+    "fraud_detection": "banking_ml_fraud_detection",
+    "credit_risk": "banking_ml_credit_risk",
+    "churn_prediction": "banking_ml_churn",
+    "loan_default": "banking_ml_loan_default"
+  },
+  
+  "data_quality": {
+    "min_record_count": 100,
+    "max_null_percentage": 5,
+    "freshness_hours": 24,
+    "duplicate_threshold": 0.01
+  },
+  
+  "fraud_detection": {
+    "threshold": 0.75,
+    "alert_channels": ["email", "slack"],
+    "monitoring_interval_minutes": 5
+  },
+  
+  "credit_scoring": {
+    "high_risk_threshold": 700,
+    "medium_risk_threshold": 500,
+    "min_credit_history_months": 6
+  }
+}
+

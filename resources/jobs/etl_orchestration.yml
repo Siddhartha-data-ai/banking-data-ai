@@ -1,0 +1,83 @@
+resources:
+  jobs:
+    banking_etl_orchestration:
+      name: banking_etl_orchestration
+      
+      tasks:
+        - task_key: generate_customers
+          notebook_task:
+            notebook_path: ../../src/bronze/generate_customers_data.py
+          job_cluster_key: job_cluster
+        
+        - task_key: generate_accounts
+          depends_on:
+            - task_key: generate_customers
+          notebook_task:
+            notebook_path: ../../src/bronze/generate_accounts_data.py
+          job_cluster_key: job_cluster
+        
+        - task_key: generate_transactions
+          depends_on:
+            - task_key: generate_accounts
+          notebook_task:
+            notebook_path: ../../src/bronze/generate_transactions_data.py
+          job_cluster_key: job_cluster
+        
+        - task_key: generate_loans
+          depends_on:
+            - task_key: generate_customers
+          notebook_task:
+            notebook_path: ../../src/bronze/generate_loans_data.py
+          job_cluster_key: job_cluster
+        
+        - task_key: generate_credit_cards
+          depends_on:
+            - task_key: generate_customers
+          notebook_task:
+            notebook_path: ../../src/bronze/generate_credit_cards_data.py
+          job_cluster_key: job_cluster
+        
+        - task_key: build_customer_360
+          depends_on:
+            - task_key: generate_transactions
+            - task_key: generate_loans
+            - task_key: generate_credit_cards
+          notebook_task:
+            notebook_path: ../../src/gold/build_customer_360.py
+          job_cluster_key: job_cluster
+        
+        - task_key: build_fraud_analytics
+          depends_on:
+            - task_key: generate_transactions
+          notebook_task:
+            notebook_path: ../../src/gold/build_fraud_detection.py
+          job_cluster_key: job_cluster
+        
+        - task_key: data_quality_monitoring
+          depends_on:
+            - task_key: build_customer_360
+            - task_key: build_fraud_analytics
+          notebook_task:
+            notebook_path: ../../src/analytics/data_quality_monitoring.py
+          job_cluster_key: job_cluster
+      
+      job_clusters:
+        - job_cluster_key: job_cluster
+          new_cluster:
+            spark_version: 14.3.x-scala2.12
+            node_type_id: i3.xlarge
+            num_workers: 2
+            spark_conf:
+              "spark.databricks.delta.preview.enabled": "true"
+      
+      schedule:
+        quartz_cron_expression: "0 0 2 * * ?"  # Daily at 2 AM
+        timezone_id: "America/Los_Angeles"
+        pause_status: UNPAUSED
+      
+      max_concurrent_runs: 1
+      timeout_seconds: 0
+      email_notifications:
+        on_failure:
+          - admin@example.com
+

@@ -1,0 +1,10 @@
+resources:
+  schemas:
+    banking_silver:
+      name: banking_silver
+      catalog_name: banking_catalog
+      comment: "Silver layer - Cleaned and validated data"
+      properties:
+        layer: "silver"
+        quality: "curated"
+

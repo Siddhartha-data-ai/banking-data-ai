@@ -1,0 +1,10 @@
+resources:
+  schemas:
+    banking_bronze:
+      name: banking_bronze
+      catalog_name: banking_catalog
+      comment: "Bronze layer - Raw data from source systems"
+      properties:
+        layer: "bronze"
+        quality: "raw"
+
