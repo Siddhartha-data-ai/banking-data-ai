@@ -21,7 +21,8 @@ from pyspark.sql.types import *
     comment="Cleaned and validated account data",
     table_properties={
         "quality": "silver",
-        "pipelines.autoOptimize.zOrderCols": "account_id,customer_id"
+        "pipelines.autoOptimize.zOrderCols": "account_id,customer_id",
+        "delta.enableChangeDataFeed": "true"
     }
 )
 @dlt.expect_or_drop("valid_account_id", "account_id IS NOT NULL")

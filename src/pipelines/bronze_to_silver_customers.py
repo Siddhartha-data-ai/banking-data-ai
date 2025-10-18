@@ -28,7 +28,8 @@ SILVER_SCHEMA = "banking_silver"
     comment="Cleaned and validated customer data",
     table_properties={
         "quality": "silver",
-        "pipelines.autoOptimize.zOrderCols": "customer_id,customer_segment"
+        "pipelines.autoOptimize.zOrderCols": "customer_id,customer_segment",
+        "delta.enableChangeDataFeed": "true"
     }
 )
 @dlt.expect_or_drop("valid_customer_id", "customer_id IS NOT NULL")

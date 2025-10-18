@@ -22,7 +22,8 @@ from pyspark.sql.window import Window
     comment="Cleaned and validated transaction data",
     table_properties={
         "quality": "silver",
-        "pipelines.autoOptimize.zOrderCols": "transaction_date,account_id"
+        "pipelines.autoOptimize.zOrderCols": "transaction_date,account_id",
+        "delta.enableChangeDataFeed": "true"
     }
 )
 @dlt.expect_or_drop("valid_transaction_id", "transaction_id IS NOT NULL")

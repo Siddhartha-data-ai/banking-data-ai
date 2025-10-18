@@ -21,7 +21,8 @@ from pyspark.sql.types import *
     comment="Cleaned and validated loan data",
     table_properties={
         "quality": "silver",
-        "pipelines.autoOptimize.zOrderCols": "loan_id,customer_id"
+        "pipelines.autoOptimize.zOrderCols": "loan_id,customer_id",
+        "delta.enableChangeDataFeed": "true"
     }
 )
 @dlt.expect_or_drop("valid_loan_id", "loan_id IS NOT NULL")

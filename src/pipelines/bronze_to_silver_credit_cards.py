@@ -21,7 +21,8 @@ from pyspark.sql.types import *
     comment="Cleaned and validated credit card data",
     table_properties={
         "quality": "silver",
-        "pipelines.autoOptimize.zOrderCols": "card_id,customer_id"
+        "pipelines.autoOptimize.zOrderCols": "card_id,customer_id",
+        "delta.enableChangeDataFeed": "true"
     }
 )
 @dlt.expect_or_drop("valid_card_id", "card_id IS NOT NULL")

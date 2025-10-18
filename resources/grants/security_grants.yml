@@ -1,0 +1,433 @@
+resources:
+  grants:
+    # Catalog-level grants
+    banking_catalog_grants:
+      catalog: banking_catalog
+      grants:
+        - principal: executives
+          privileges:
+            - ALL_PRIVILEGES
+        
+        - principal: compliance_officers
+          privileges:
+            - USE_CATALOG
+            - USE_SCHEMA
+            - SELECT
+            - READ_VOLUME
+        
+        - principal: fraud_analysts
+          privileges:
+            - USE_CATALOG
+            - USE_SCHEMA
+            - SELECT
+        
+        - principal: risk_managers
+          privileges:
+            - USE_CATALOG
+            - USE_SCHEMA
+            - SELECT
+        
+        - principal: branch_managers
+          privileges:
+            - USE_CATALOG
+            - USE_SCHEMA
+            - SELECT
+        
+        - principal: relationship_managers
+          privileges:
+            - USE_CATALOG
+            - USE_SCHEMA
+            - SELECT
+        
+        - principal: customer_service
+          privileges:
+            - USE_CATALOG
+            - USE_SCHEMA
+            - SELECT
+        
+        - principal: data_analysts
+          privileges:
+            - USE_CATALOG
+            - USE_SCHEMA
+            - SELECT
+    
+    # Bronze schema grants (restricted access)
+    bronze_schema_grants:
+      schema: banking_catalog.banking_bronze
+      grants:
+        - principal: executives
+          privileges:
+            - ALL_PRIVILEGES
+        
+        - principal: data_engineers
+          privileges:
+            - SELECT
+            - MODIFY
+            - CREATE
+        
+        - principal: compliance_officers
+          privileges:
+            - SELECT
+    
+    # Silver schema grants (cleaned data)
+    silver_schema_grants:
+      schema: banking_catalog.banking_silver
+      grants:
+        - principal: executives
+          privileges:
+            - ALL_PRIVILEGES
+        
+        - principal: data_engineers
+          privileges:
+            - SELECT
+            - MODIFY
+            - CREATE
+        
+        - principal: compliance_officers
+          privileges:
+            - SELECT
+        
+        - principal: fraud_analysts
+          privileges:
+            - SELECT
+        
+        - principal: risk_managers
+          privileges:
+            - SELECT
+    
+    # Gold schema grants (business analytics)
+    gold_schema_grants:
+      schema: banking_catalog.banking_gold
+      grants:
+        - principal: executives
+          privileges:
+            - ALL_PRIVILEGES
+        
+        - principal: compliance_officers
+          privileges:
+            - SELECT
+        
+        - principal: fraud_analysts
+          privileges:
+            - SELECT
+        
+        - principal: risk_managers
+          privileges:
+            - SELECT
+        
+        - principal: branch_managers
+          privileges:
+            - SELECT
+        
+        - principal: relationship_managers
+          privileges:
+            - SELECT
+        
+        - principal: customer_service
+          privileges:
+            - SELECT
+        
+        - principal: data_analysts
+          privileges:
+            - SELECT
+        
+        - principal: bi_users
+          privileges:
+            - SELECT
+    
+    # Secure Views - RLS Protected
+    customers_secure_view_grants:
+      view: banking_catalog.banking_gold.customers_secure
+      grants:
+        - principal: account users
+          privileges:
+            - SELECT
+    
+    accounts_secure_view_grants:
+      view: banking_catalog.banking_gold.accounts_secure
+      grants:
+        - principal: account users
+          privileges:
+            - SELECT
+    
+    transactions_secure_view_grants:
+      view: banking_catalog.banking_gold.transactions_secure
+      grants:
+        - principal: account users
+          privileges:
+            - SELECT
+    
+    # Secure Views - CLS Protected
+    customers_cls_view_grants:
+      view: banking_catalog.banking_gold.customers_cls_protected
+      grants:
+        - principal: account users
+          privileges:
+            - SELECT
+    
+    accounts_cls_view_grants:
+      view: banking_catalog.banking_gold.accounts_cls_protected
+      grants:
+        - principal: account users
+          privileges:
+            - SELECT
+    
+    transactions_cls_view_grants:
+      view: banking_catalog.banking_gold.transactions_cls_protected
+      grants:
+        - principal: account users
+          privileges:
+            - SELECT
+    
+    # Fraud Alerts - Restricted Access
+    fraud_alerts_secure_grants:
+      view: banking_catalog.banking_gold.fraud_alerts_secure
+      grants:
+        - principal: fraud_analysts
+          privileges:
+            - SELECT
+        
+        - principal: compliance_officers
+          privileges:
+            - SELECT
+        
+        - principal: executives
+          privileges:
+            - SELECT
+        
+        - principal: risk_managers
+          privileges:
+            - SELECT
+    
+    fraud_alerts_cls_grants:
+      view: banking_catalog.banking_gold.fraud_alerts_cls_protected
+      grants:
+        - principal: fraud_analysts
+          privileges:
+            - SELECT
+        
+        - principal: compliance_officers
+          privileges:
+            - SELECT
+        
+        - principal: executives
+          privileges:
+            - SELECT
+        
+        - principal: risk_managers
+          privileges:
+            - SELECT
+    
+    # ML Model Tables - Data Scientists
+    ml_predictions_grants:
+      schema: banking_catalog.banking_gold
+      grants:
+        - principal: data_scientists
+          privileges:
+            - SELECT
+            - MODIFY
+          tables:
+            - fraud_predictions
+            - credit_risk_predictions
+            - customer_churn_predictions
+            - loan_default_predictions
+    
+    # Star Schema Tables
+    fact_transactions_grants:
+      table: banking_catalog.banking_gold.fact_transactions
+      grants:
+        - principal: bi_users
+          privileges:
+            - SELECT
+        
+        - principal: data_analysts
+          privileges:
+            - SELECT
+    
+    fact_account_snapshot_grants:
+      table: banking_catalog.banking_gold.fact_account_daily_snapshot
+      grants:
+        - principal: bi_users
+          privileges:
+            - SELECT
+        
+        - principal: data_analysts
+          privileges:
+            - SELECT
+    
+    fact_loans_grants:
+      table: banking_catalog.banking_gold.fact_loan_performance
+      grants:
+        - principal: risk_managers
+          privileges:
+            - SELECT
+        
+        - principal: bi_users
+          privileges:
+            - SELECT
+    
+    # Dimension Tables
+    dim_customer_grants:
+      table: banking_catalog.banking_gold.dim_customer
+      grants:
+        - principal: executives
+          privileges:
+            - SELECT
+        
+        - principal: compliance_officers
+          privileges:
+            - SELECT
+    
+    dim_account_grants:
+      table: banking_catalog.banking_gold.dim_account
+      grants:
+        - principal: executives
+          privileges:
+            - SELECT
+        
+        - principal: risk_managers
+          privileges:
+            - SELECT
+    
+    # Streaming Tables - Real-time CDC
+    transactions_cdc_stream_grants:
+      table: banking_catalog.banking_silver.transactions_cdc_stream
+      grants:
+        - principal: fraud_analysts
+          privileges:
+            - SELECT
+        
+        - principal: data_engineers
+          privileges:
+            - SELECT
+            - MODIFY
+    
+    fraud_realtime_grants:
+      table: banking_catalog.banking_gold.fraud_detection_realtime
+      grants:
+        - principal: fraud_analysts
+          privileges:
+            - SELECT
+        
+        - principal: compliance_officers
+          privileges:
+            - SELECT
+        
+        - principal: executives
+          privileges:
+            - SELECT
+
+# User Group Definitions (to be created in Databricks workspace)
+user_groups:
+  - name: executives
+    description: C-level and senior executives with full access
+    members:
+      - ceo@bank.com
+      - cfo@bank.com
+      - cto@bank.com
+      - cio@bank.com
+  
+  - name: compliance_officers
+    description: Compliance and regulatory team
+    members:
+      - compliance@bank.com
+      - audit@bank.com
+  
+  - name: fraud_analysts
+    description: Fraud detection and prevention team
+    members:
+      - fraud-team@bank.com
+  
+  - name: risk_managers
+    description: Credit and operational risk managers
+    members:
+      - risk-team@bank.com
+  
+  - name: branch_managers
+    description: Branch managers with regional access
+    members:
+      - branch-managers@bank.com
+  
+  - name: relationship_managers
+    description: Customer relationship managers
+    members:
+      - rm-team@bank.com
+  
+  - name: customer_service
+    description: Customer service representatives
+    members:
+      - support@bank.com
+  
+  - name: data_analysts
+    description: Business and data analysts
+    members:
+      - analysts@bank.com
+  
+  - name: data_engineers
+    description: Data engineering team
+    members:
+      - data-engineering@bank.com
+  
+  - name: data_scientists
+    description: ML and data science team
+    members:
+      - ds-team@bank.com
+  
+  - name: bi_users
+    description: Business intelligence users
+    members:
+      - bi-team@bank.com
+
+# Security Policies
+security_policies:
+  - name: pii_protection
+    description: Protect personally identifiable information
+    applies_to:
+      - banking_catalog.banking_gold.customers_cls_protected
+      - banking_catalog.banking_gold.accounts_cls_protected
+    rules:
+      - mask_ssn: true
+      - mask_email: true
+      - mask_phone: true
+      - mask_address: true
+  
+  - name: financial_data_protection
+    description: Protect sensitive financial data
+    applies_to:
+      - banking_catalog.banking_gold.accounts_cls_protected
+      - banking_catalog.banking_gold.transactions_cls_protected
+      - banking_catalog.banking_gold.loans_cls_protected
+    rules:
+      - mask_amounts: true
+      - mask_account_numbers: true
+      - round_balances: true
+  
+  - name: fraud_data_restriction
+    description: Restrict access to fraud detection data
+    applies_to:
+      - banking_catalog.banking_gold.fraud_alerts_secure
+      - banking_catalog.banking_gold.fraud_alerts_cls_protected
+      - banking_catalog.banking_gold.fraud_detection_realtime
+    rules:
+      - require_group: [fraud_analysts, compliance_officers, executives]
+      - mask_merchant_details: true
+      - hide_fraud_scores: true
+
+# Audit Configuration
+audit_config:
+  enabled: true
+  log_location: /audit_logs/banking_catalog
+  retention_days: 2555  # 7 years for banking compliance
+  events_to_log:
+    - SELECT
+    - MODIFY
+    - CREATE
+    - DELETE
+    - GRANT
+    - REVOKE
+  sensitive_tables:
+    - banking_catalog.banking_gold.dim_customer
+    - banking_catalog.banking_gold.dim_account
+    - banking_catalog.banking_gold.fact_transactions
+    - banking_catalog.banking_gold.fraud_detection_realtime
+
