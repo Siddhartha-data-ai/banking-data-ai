@@ -32,9 +32,9 @@ class TestFraudDetection:
         # Calculate fraud score (0-100)
         result = sample_transaction_data.withColumn(
             "fraud_score",
-            when(col("amount") > 5000, 95)
-            .when(col("amount") > 1000, 75)
-            .when(col("amount") > 500, 50)
+            when(col("amount") >= 5000, 95)  # Changed > to >=
+            .when(col("amount") >= 1000, 75)
+            .when(col("amount") >= 500, 50)
             .otherwise(10)
         )
         

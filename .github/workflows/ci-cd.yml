@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: '0 2 * * *'  # Daily at 2 AM
 
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
 env:
   PYTHON_VERSION: '3.10'
   DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
@@ -114,6 +119,7 @@ jobs:
         with:
           files: |
             junit/test-results.xml
+        continue-on-error: true
 
   integration-tests:
     name: Integration Tests
