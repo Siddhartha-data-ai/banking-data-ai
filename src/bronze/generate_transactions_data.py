@@ -24,7 +24,8 @@ CATALOG = "banking_catalog"
 SCHEMA = "banking_bronze"
 TABLE = "transactions"
 ACCOUNT_TABLE = f"{CATALOG}.{SCHEMA}.accounts"
-TRANSACTIONS_PER_ACCOUNT = 50  # Average transactions per account
+TARGET_TRANSACTIONS = 5_000_000  # Target: 5M transactions as per enterprise requirements
+TRANSACTIONS_PER_ACCOUNT = 10  # Average transactions per account (5M / 500K accounts)
 
 # COMMAND ----------
 
@@ -193,13 +194,15 @@ def generate_transaction_for_account(account_id, customer_id, account_type):
 
 # Generate transactions for all accounts
 print(f"Generating transactions for {len(accounts)} accounts...")
+print(f"Target: {TARGET_TRANSACTIONS:,} transactions (~{TRANSACTIONS_PER_ACCOUNT} per account)")
+
 all_transactions = []
 for i, (account_id, customer_id, account_type) in enumerate(accounts):
-    if i % 1000 == 0:
-        print(f"Processing account {i}/{len(accounts)}")
+    if i % 10000 == 0 and i > 0:
+        print(f"  Processed {i:,}/{len(accounts):,} accounts, generated {len(all_transactions):,} transactions...")
     all_transactions.extend(generate_transaction_for_account(account_id, customer_id, account_type))
 
-print(f"Generated {len(all_transactions)} total transactions")
+print(f"Generated {len(all_transactions):,} total transactions")
 
 # COMMAND ----------
 

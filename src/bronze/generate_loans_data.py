@@ -24,6 +24,7 @@ CATALOG = "banking_catalog"
 SCHEMA = "banking_bronze"
 TABLE = "loans"
 CUSTOMER_TABLE = f"{CATALOG}.{SCHEMA}.customers"
+TARGET_LOANS = 250_000  # Target: 250K loans as per enterprise requirements
 
 # COMMAND ----------
 
@@ -38,6 +39,13 @@ try:
     customers = [(row.customer_id, row.credit_score, row.annual_income) 
                  for row in customers_df.select("customer_id", "credit_score", "annual_income").collect()]
     print(f"Loaded {len(customers)} customers")
+    
+    # Calculate how many customers need loans to reach target
+    # Average 1.2 loans per customer with loans (80% get 1, 20% get 2)
+    customers_needed = int(TARGET_LOANS / 1.2)
+    if customers_needed < len(customers):
+        customers = random.sample(customers, customers_needed)
+        print(f"Selected {len(customers)} customers to generate ~{TARGET_LOANS:,} loans")
 except Exception as e:
     print(f"Error loading customers: {e}")
     print("Please run generate_customers_data.py first!")
@@ -73,13 +81,10 @@ def calculate_monthly_payment(principal, annual_rate, term_months):
     return round(payment, 2)
 
 def generate_loan_for_customer(customer_id, credit_score, annual_income):
-    """Generate 0-2 loans per customer (not all customers have loans)"""
+    """Generate 1-2 loans per customer (already filtered customers who should have loans)"""
     loans = []
     
-    # Only 40% of customers have loans
-    if random.random() > 0.4:
-        return loans
-    
+    # Generate 1-2 loans per selected customer
     num_loans = random.choices([1, 2], weights=[0.8, 0.2])[0]
     
     for _ in range(num_loans):
@@ -222,11 +227,15 @@ def generate_loan_for_customer(customer_id, credit_score, annual_income):
 
 # Generate loans for eligible customers
 print(f"Generating loans for {len(customers)} customers...")
+print(f"Target: {TARGET_LOANS:,} loans")
+
 all_loans = []
-for customer_id, credit_score, annual_income in customers:
+for i, (customer_id, credit_score, annual_income) in enumerate(customers):
+    if i % 10000 == 0 and i > 0:
+        print(f"  Processed {i:,}/{len(customers):,} customers, generated {len(all_loans):,} loans...")
     all_loans.extend(generate_loan_for_customer(customer_id, credit_score, annual_income))
 
-print(f"Generated {len(all_loans)} total loans")
+print(f"Generated {len(all_loans):,} total loans")
 
 # COMMAND ----------
 

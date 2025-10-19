@@ -24,6 +24,7 @@ CATALOG = "banking_catalog"
 SCHEMA = "banking_bronze"
 TABLE = "credit_cards"
 CUSTOMER_TABLE = f"{CATALOG}.{SCHEMA}.customers"
+TARGET_CREDIT_CARDS = 300_000  # Target: 300K credit cards as per enterprise requirements
 
 # COMMAND ----------
 
@@ -38,6 +39,13 @@ try:
     customers = [(row.customer_id, row.credit_score, row.annual_income) 
                  for row in customers_df.select("customer_id", "credit_score", "annual_income").collect()]
     print(f"Loaded {len(customers)} customers")
+    
+    # Calculate how many customers need credit cards to reach target
+    # Average 1.3 cards per customer with cards (70% get 1, 30% get 2)
+    customers_needed = int(TARGET_CREDIT_CARDS / 1.3)
+    if customers_needed < len(customers):
+        customers = random.sample(customers, customers_needed)
+        print(f"Selected {len(customers)} customers to generate ~{TARGET_CREDIT_CARDS:,} credit cards")
 except Exception as e:
     print(f"Error loading customers: {e}")
     print("Please run generate_customers_data.py first!")
@@ -82,14 +90,11 @@ def generate_card_number(network):
     return prefix + remaining
 
 def generate_credit_card_for_customer(customer_id, credit_score, annual_income):
-    """Generate 0-3 credit cards per customer"""
+    """Generate 1-2 credit cards per customer (already filtered customers who should have cards)"""
     cards = []
     
-    # 60% of customers have at least one credit card
-    if random.random() > 0.6:
-        return cards
-    
-    num_cards = random.choices([1, 2, 3], weights=[0.6, 0.3, 0.1])[0]
+    # Generate 1-2 cards per selected customer
+    num_cards = random.choices([1, 2], weights=[0.7, 0.3])[0]
     
     for _ in range(num_cards):
         card_id = f"CC{random.randint(1000000000, 9999999999)}"
@@ -216,11 +221,15 @@ def generate_credit_card_for_customer(customer_id, credit_score, annual_income):
 
 # Generate credit cards for eligible customers
 print(f"Generating credit cards for {len(customers)} customers...")
+print(f"Target: {TARGET_CREDIT_CARDS:,} credit cards")
+
 all_cards = []
-for customer_id, credit_score, annual_income in customers:
+for i, (customer_id, credit_score, annual_income) in enumerate(customers):
+    if i % 10000 == 0 and i > 0:
+        print(f"  Processed {i:,}/{len(customers):,} customers, generated {len(all_cards):,} cards...")
     all_cards.extend(generate_credit_card_for_customer(customer_id, credit_score, annual_income))
 
-print(f"Generated {len(all_cards)} total credit cards")
+print(f"Generated {len(all_cards):,} total credit cards")
 
 # COMMAND ----------
 

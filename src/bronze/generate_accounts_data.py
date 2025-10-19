@@ -27,6 +27,11 @@ CUSTOMER_TABLE = f"{CATALOG}.{SCHEMA}.customers"
 
 # COMMAND ----------
 
+# Configuration for target account count
+TARGET_ACCOUNTS = 500_000  # Target: 500K accounts as per enterprise requirements
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Load Customer Data
 
@@ -37,6 +42,13 @@ try:
     customers_df = spark.table(CUSTOMER_TABLE)
     customer_ids = [row.customer_id for row in customers_df.select("customer_id").collect()]
     print(f"Loaded {len(customer_ids)} customers")
+    
+    # Calculate how many customers need accounts to reach target
+    # Average 1.65 accounts per customer (based on weights)
+    customers_needed = int(TARGET_ACCOUNTS / 1.65)
+    if customers_needed < len(customer_ids):
+        customer_ids = random.sample(customer_ids, customers_needed)
+        print(f"Selected {len(customer_ids)} customers to generate ~{TARGET_ACCOUNTS:,} accounts")
 except Exception as e:
     print(f"Error loading customers: {e}")
     print("Please run generate_customers_data.py first!")

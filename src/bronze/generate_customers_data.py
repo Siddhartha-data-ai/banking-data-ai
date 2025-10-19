@@ -23,7 +23,7 @@ import uuid
 CATALOG = "banking_catalog"
 SCHEMA = "banking_bronze"
 TABLE = "customers"
-NUM_CUSTOMERS = 10000
+NUM_CUSTOMERS = 1_000_000  # 1 Million customers as per enterprise requirements
 
 # COMMAND ----------
 
