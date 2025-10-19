@@ -1,0 +1,333 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM
+
+env:
+  PYTHON_VERSION: '3.10'
+  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+  DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+jobs:
+  lint-and-format:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install linting tools
+        run: |
+          pip install black flake8 pylint mypy isort
+      
+      - name: Run Black (code formatter)
+        run: |
+          black --check --diff src/ tests/
+        continue-on-error: true
+      
+      - name: Run Flake8 (linter)
+        run: |
+          flake8 src/ tests/ --max-line-length=120 --exclude=venv,__pycache__
+        continue-on-error: true
+      
+      - name: Run Pylint (advanced linter)
+        run: |
+          pylint src/ --disable=C0111,R0903 --max-line-length=120
+        continue-on-error: true
+      
+      - name: Run isort (import sorter)
+        run: |
+          isort --check-only --diff src/ tests/
+        continue-on-error: true
+      
+      - name: Run MyPy (type checking)
+        run: |
+          mypy src/ --ignore-missing-imports
+        continue-on-error: true
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: lint-and-format
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install Java (for PySpark)
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyspark pytest pytest-cov pytest-xdist
+          pip install -r tests/requirements.txt || true
+      
+      - name: Run unit tests with coverage
+        run: |
+          pytest tests/unit/ \
+            -v \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=html \
+            --cov-report=term \
+            --junitxml=junit/test-results.xml
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+      
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            junit/test-results.xml
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyspark pytest
+          pip install -r tests/requirements.txt || true
+      
+      - name: Run integration tests
+        run: |
+          pytest tests/integration/ -v -m integration --maxfail=5
+
+  data-quality-tests:
+    name: Data Quality Tests
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyspark pytest great-expectations
+      
+      - name: Run data quality tests
+        run: |
+          pytest tests/data_quality/ -v -m data_quality
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Run Bandit (security linter)
+        run: |
+          pip install bandit
+          bandit -r src/ -f json -o bandit-report.json || true
+        continue-on-error: true
+      
+      - name: Run Safety (dependency vulnerability scanner)
+        run: |
+          pip install safety
+          safety check --json || true
+        continue-on-error: true
+      
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+
+  validate-databricks-bundle:
+    name: Validate Databricks Bundle
+    runs-on: ubuntu-latest
+    needs: [lint-and-format, unit-tests]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+      
+      - name: Validate bundle (dev)
+        run: |
+          databricks bundle validate -t dev
+      
+      - name: Validate bundle (staging)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          databricks bundle validate -t staging
+      
+      - name: Validate bundle (prod)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          databricks bundle validate -t prod
+
+  deploy-dev:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    needs: [validate-databricks-bundle, integration-tests]
+    if: github.ref == 'refs/heads/develop'
+    environment: development
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+      
+      - name: Deploy to Dev
+        run: |
+          databricks bundle deploy -t dev
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests on dev environment..."
+          # Add smoke test commands here
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [validate-databricks-bundle, integration-tests]
+    if: github.ref == 'refs/heads/main'
+    environment: staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+      
+      - name: Deploy to Staging
+        run: |
+          databricks bundle deploy -t staging
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_STAGING }}
+      
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests on staging environment..."
+
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+      
+      - name: Deploy to Production
+        run: |
+          databricks bundle deploy -t prod
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN_PROD }}
+      
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests on production environment..."
+      
+      - name: Notify deployment
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: 'Production deployment ${{ job.status }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    if: github.event_name == 'schedule' || github.event_name == 'push'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Run performance benchmarks
+        run: |
+          echo "Running performance tests..."
+          # Add performance test commands
+      
+      - name: Check performance degradation
+        run: |
+          echo "Checking for performance regressions..."
+          # Compare with baseline metrics
+
