@@ -33,12 +33,14 @@ class TestETLPipeline:
     @pytest.mark.integration
     def test_silver_to_gold_aggregation(self, spark, sample_transaction_data):
         """Test silver to gold aggregation"""
+        from pyspark.sql.functions import sum as spark_sum
+        
         # Aggregate transactions by customer
         gold_df = (sample_transaction_data
             .groupBy("customer_id")
             .agg(
                 count("transaction_id").alias("transaction_count"),
-                col("amount").alias("total_amount")  # Simplified
+                spark_sum("amount").alias("total_amount")  # Fixed: Added sum aggregation
             )
         )
         
